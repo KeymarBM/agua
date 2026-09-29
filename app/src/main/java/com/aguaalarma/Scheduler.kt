@@ -8,7 +8,18 @@ import java.util.Calendar
 
 object Scheduler {
     // hora, minuto
-    val HORARIO = listOf(13 to 0, 15 to 0, 17 to 0, 19 to 0, 21 to 0, 22 to 30)
+    val HORARIO = listOf(
+        13 to 0,   // 1:00 p. m.
+        15 to 0,   // 3:00 p. m.
+        17 to 0,   // 5:00 p. m.
+        19 to 0,   // 7:00 p. m.
+        21 to 0,   // 9:00 p. m.
+        22 to 30,  // 10:30 p. m.
+        23 to 30,  // 11:30 p. m.
+        0 to 30,   // 12:30 a. m.
+        1 to 15,   // 1:15 a. m.
+        2 to 0     // 2:00 a. m.
+    )
 
     fun label(h: Int, m: Int) =
         String.format("%d:%02d %s", if (h % 12 == 0) 12 else h % 12, m, if (h < 12) "a. m." else "p. m.")
