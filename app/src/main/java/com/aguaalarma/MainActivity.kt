@@ -53,7 +53,7 @@ class MainActivity : AppCompatActivity() {
             })
         }
         statusCard.addView(TextView(this).apply {
-            text = "Sonará automáticamente a la hora señalada. No necesitas tocar nada para activarla.",
+            text = "Sonará automáticamente a la hora señalada. No necesitas tocar nada para activarla."
             textSize = 12f
             setTextColor(Color.parseColor("#C8B6FF"))
             setPadding(0, 8, 0, 0)
