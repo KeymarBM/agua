@@ -25,13 +25,14 @@ import com.google.mlkit.vision.label.defaults.ImageLabelerOptions
 
 class ScanActivity : AppCompatActivity() {
     private val labeler = ImageLabeling.getClient(
-        ImageLabelerOptions.Builder().setConfidenceThreshold(0.35f).build())
+        ImageLabelerOptions.Builder().setConfidenceThreshold(0.25f).build())
     private val palabrasClave = listOf(
         "glass", "cup", "bottle", "water", "drink", "liquid", "mug", "fluid",
-        "beverage", "tableware", "drinkware", "tumbler", "jar", "pitcher", "stemware", "tea", "coffee"
+        "beverage", "tableware", "drinkware", "tumbler", "jar", "pitcher", "stemware",
+        "tea", "coffee", "dishware", "barware", "plastic bottle", "container", "jug", "decanter"
     )
     private var last = 0L
-    private var hits = 0
+    private var terminado = false
     private lateinit var status: TextView
     private lateinit var preview: PreviewView
 
@@ -84,22 +85,21 @@ class ScanActivity : AppCompatActivity() {
     private fun analyze(proxy: ImageProxy) {
         val img = proxy.image
         val now = SystemClock.elapsedRealtime()
-        if (img == null || now - last < 500) { proxy.close(); return }
+        if (img == null || terminado || now - last < 350) { proxy.close(); return }
         last = now
         labeler.process(InputImage.fromMediaImage(img, proxy.imageInfo.rotationDegrees))
             .addOnSuccessListener { labels ->
+                if (terminado) return@addOnSuccessListener
                 val matches = labels.filter { label ->
                     val txt = label.text.lowercase()
                     palabrasClave.any { txt.contains(it) }
                 }
                 if (matches.isNotEmpty()) {
-                    hits++
                     val topMatch = matches.first()
                     val pct = (topMatch.confidence * 100).toInt()
-                    status.text = "💧 ¡Vaso detectado! (${topMatch.text} $pct%)\nConfirmando ($hits/2)..."
-                    if (hits >= 2) terminar()
+                    status.text = "💧 ¡Vaso detectado! (${topMatch.text} $pct%)\n¡Alarma apagada!"
+                    terminar()
                 } else {
-                    if (hits > 0) hits--
                     val viendo = labels.take(2).map { it.text }.joinToString(", ")
                     status.text = if (viendo.isNotEmpty()) {
                         "💧 Apunta la cámara a un vaso con agua\n(Detectando: $viendo)"
@@ -112,7 +112,14 @@ class ScanActivity : AppCompatActivity() {
     }
 
     private fun terminar() {
-        startService(Intent(this, AlarmService::class.java).setAction("STOP"))
+        if (terminado) return
+        terminado = true
+        try {
+            startService(Intent(this, AlarmService::class.java).setAction("STOP"))
+            stopService(Intent(this, AlarmService::class.java))
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
         finish()
     }
 }

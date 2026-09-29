@@ -44,6 +44,20 @@ object Scheduler {
 
     fun scheduleAll(ctx: Context) = HORARIO.indices.forEach { schedule(ctx, it) }
 
+    fun cancelAll(ctx: Context) {
+        val am = ctx.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        HORARIO.indices.forEach { idx ->
+            val fire = PendingIntent.getBroadcast(
+                ctx, idx, Intent(ctx, AlarmReceiver::class.java).putExtra("idx", idx), flags)
+            try {
+                am.cancel(fire)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
     fun schedule(ctx: Context, idx: Int) {
         val (h, m) = HORARIO[idx]
         val cal = Calendar.getInstance().apply {
