@@ -1,0 +1,32 @@
+package com.aguaalarma
+
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import java.util.Calendar
+
+object Scheduler {
+    // hora, minuto
+    val HORARIO = listOf(13 to 0, 15 to 0, 17 to 0, 19 to 0, 21 to 0, 22 to 30)
+
+    fun label(h: Int, m: Int) =
+        String.format("%d:%02d %s", if (h % 12 == 0) 12 else h % 12, m, if (h < 12) "a. m." else "p. m.")
+
+    fun scheduleAll(ctx: Context) = HORARIO.indices.forEach { schedule(ctx, it) }
+
+    fun schedule(ctx: Context, idx: Int) {
+        val (h, m) = HORARIO[idx]
+        val cal = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, h); set(Calendar.MINUTE, m)
+            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+            if (timeInMillis <= System.currentTimeMillis() + 1000) add(Calendar.DAY_OF_YEAR, 1)
+        }
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        val fire = PendingIntent.getBroadcast(
+            ctx, idx, Intent(ctx, AlarmReceiver::class.java).putExtra("idx", idx), flags)
+        val show = PendingIntent.getActivity(ctx, 100, Intent(ctx, MainActivity::class.java), flags)
+        val am = ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        am.setAlarmClock(AlarmManager.AlarmClockInfo(cal.timeInMillis, show), fire)
+    }
+}
