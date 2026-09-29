@@ -29,22 +29,70 @@ class MainActivity : AppCompatActivity() {
         }
         scroll.addView(root)
         fun tv(t: String, size: Float, color: String) = TextView(this).apply {
-            text = t; textSize = size; setTextColor(Color.parseColor(color)); setPadding(0, 16, 0, 16)
+            text = t; textSize = size; setTextColor(Color.parseColor(color)); setPadding(0, 10, 0, 10)
         }
-        root.addView(tv("💧 Alarma del agua", 30f, "#FFFFFF"))
+        root.addView(tv("💧 Alarma del agua", 28f, "#FFFFFF"))
+
+        val statusCard = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(36, 28, 36, 28)
+            setBackgroundColor(Color.parseColor("#33240046"))
+        }
+        statusCard.addView(TextView(this).apply {
+            text = "🟢 Alarmas automáticas ACTIVADAS"
+            textSize = 15f
+            setTextColor(Color.parseColor("#52B788"))
+        })
+        val nextTxt = Scheduler.getNextAlarmText()
+        if (nextTxt.isNotEmpty()) {
+            statusCard.addView(TextView(this).apply {
+                text = "⏰ Próxima: $nextTxt"
+                textSize = 14f
+                setTextColor(Color.WHITE)
+                setPadding(0, 8, 0, 0)
+            })
+        }
+        statusCard.addView(TextView(this).apply {
+            text = "Sonará automáticamente a la hora señalada. No necesitas tocar nada para activarla.",
+            textSize = 12f
+            setTextColor(Color.parseColor("#C8B6FF"))
+            setPadding(0, 8, 0, 0)
+        })
+        val lpCard = LinearLayout.LayoutParams(-1, -2).apply {
+            topMargin = 16
+            bottomMargin = 24
+        }
+        root.addView(statusCard, lpCard)
+
+        root.addView(tv("📅 Horarios programados:", 16f, "#FFFFFF"))
         Scheduler.HORARIO.forEach { (h, m) ->
-            root.addView(tv("⏰ ${Scheduler.label(h, m)} → un vaso de agua", 18f, "#E0AAFF"))
+            root.addView(tv("⏰ ${Scheduler.label(h, m)} → un vaso de agua", 16f, "#E0AAFF"))
         }
+
+        val testLabel = TextView(this).apply {
+            text = "🧪 Zona de prueba (opcional):"
+            textSize = 14f
+            setTextColor(Color.WHITE)
+            setPadding(0, 28, 0, 6)
+        }
+        val testSub = TextView(this).apply {
+            text = "Usa este botón solo para probar la cámara y verificar que detecte tu vaso:"
+            textSize = 12f
+            setTextColor(Color.parseColor("#C8B6FF"))
+        }
+        root.addView(testLabel)
+        root.addView(testSub)
+
         val btn = Button(this).apply {
-            text = "Probar alarma ahora"
+            text = "🔔 Simular alarma ahora (Prueba)"
             setTextColor(Color.WHITE)
             backgroundTintList = ColorStateList.valueOf(Color.parseColor("#7B2CBF"))
             setOnClickListener {
                 ContextCompat.startForegroundService(this@MainActivity, Intent(this@MainActivity, AlarmService::class.java))
             }
         }
-        val lp = LinearLayout.LayoutParams(-1, -2).apply { topMargin = 32 }
-        root.addView(btn, lp)
+        val lpBtn = LinearLayout.LayoutParams(-1, -2).apply { topMargin = 14; bottomMargin = 40 }
+        root.addView(btn, lpBtn)
         setContentView(scroll)
 
         val perms = mutableListOf(Manifest.permission.CAMERA)

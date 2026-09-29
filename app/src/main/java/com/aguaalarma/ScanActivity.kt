@@ -10,6 +10,8 @@ import android.view.Gravity
 import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.TextView
+import android.content.res.ColorStateList
+import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
@@ -23,9 +25,11 @@ import com.google.mlkit.vision.label.defaults.ImageLabelerOptions
 
 class ScanActivity : AppCompatActivity() {
     private val labeler = ImageLabeling.getClient(
-        ImageLabelerOptions.Builder().setConfidenceThreshold(0.5f).build())
-    private val recipientes = setOf("glass", "cup", "drinkware", "bottle", "tableware", "mug", "water bottle")
-    private val liquidos = setOf("water", "drink", "liquid", "fluid")
+        ImageLabelerOptions.Builder().setConfidenceThreshold(0.35f).build())
+    private val palabrasClave = listOf(
+        "glass", "cup", "bottle", "water", "drink", "liquid", "mug", "fluid",
+        "beverage", "tableware", "drinkware", "tumbler", "jar", "pitcher", "stemware", "tea", "coffee"
+    )
     private var last = 0L
     private var hits = 0
     private lateinit var status: TextView
@@ -35,19 +39,29 @@ class ScanActivity : AppCompatActivity() {
         super.onCreate(b)
         setShowWhenLocked(true); setTurnScreenOn(true)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        // el botón atrás no hace nada: la alarma solo se apaga escaneando
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {}
         })
         preview = PreviewView(this)
         status = TextView(this).apply {
             text = "💧 Apunta la cámara a un vaso con agua"
-            textSize = 20f; setTextColor(Color.WHITE); gravity = Gravity.CENTER
-            setBackgroundColor(Color.parseColor("#CC7B2CBF")); setPadding(32, 48, 32, 48)
+            textSize = 18f; setTextColor(Color.WHITE); gravity = Gravity.CENTER
+            setBackgroundColor(Color.parseColor("#E61A0B2E")); setPadding(32, 40, 32, 40)
+        }
+        val btnApagar = Button(this).apply {
+            text = "✕ Apagar alarma"
+            setTextColor(Color.WHITE)
+            textSize = 13f
+            backgroundTintList = ColorStateList.valueOf(Color.parseColor("#B3D90429"))
+            setOnClickListener { terminar() }
+        }
+        val lpBtn = FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT, Gravity.TOP or Gravity.END).apply {
+            setMargins(0, 100, 32, 0)
         }
         setContentView(FrameLayout(this).apply {
             addView(preview)
             addView(status, FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM))
+            addView(btnApagar, lpBtn)
         })
         val ask = registerForActivityResult(ActivityResultContracts.RequestPermission()) { if (it) startCamera() }
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
@@ -70,16 +84,29 @@ class ScanActivity : AppCompatActivity() {
     private fun analyze(proxy: ImageProxy) {
         val img = proxy.image
         val now = SystemClock.elapsedRealtime()
-        if (img == null || now - last < 600) { proxy.close(); return }
+        if (img == null || now - last < 500) { proxy.close(); return }
         last = now
         labeler.process(InputImage.fromMediaImage(img, proxy.imageInfo.rotationDegrees))
             .addOnSuccessListener { labels ->
-                val names = labels.map { it.text.lowercase() }
-                val ok = names.any { it in recipientes } && names.any { it in liquidos }
-                hits = if (ok) hits + 1 else 0
-                status.text = if (ok) "💧 ¡Vaso con agua detectado! ($hits/3)"
-                              else "💧 Apunta la cámara a un vaso con agua"
-                if (hits >= 3) terminar()
+                val matches = labels.filter { label ->
+                    val txt = label.text.lowercase()
+                    palabrasClave.any { txt.contains(it) }
+                }
+                if (matches.isNotEmpty()) {
+                    hits++
+                    val topMatch = matches.first()
+                    val pct = (topMatch.confidence * 100).toInt()
+                    status.text = "💧 ¡Vaso detectado! (${topMatch.text} $pct%)\nConfirmando ($hits/2)..."
+                    if (hits >= 2) terminar()
+                } else {
+                    if (hits > 0) hits--
+                    val viendo = labels.take(2).map { it.text }.joinToString(", ")
+                    status.text = if (viendo.isNotEmpty()) {
+                        "💧 Apunta la cámara a un vaso con agua\n(Detectando: $viendo)"
+                    } else {
+                        "💧 Apunta la cámara a un vaso con agua"
+                    }
+                }
             }
             .addOnCompleteListener { proxy.close() }
     }
