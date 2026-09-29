@@ -26,7 +26,25 @@ object Scheduler {
         val fire = PendingIntent.getBroadcast(
             ctx, idx, Intent(ctx, AlarmReceiver::class.java).putExtra("idx", idx), flags)
         val show = PendingIntent.getActivity(ctx, 100, Intent(ctx, MainActivity::class.java), flags)
-        val am = ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        am.setAlarmClock(AlarmManager.AlarmClockInfo(cal.timeInMillis, show), fire)
+        val am = ctx.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                if (am.canScheduleExactAlarms()) {
+                    am.setAlarmClock(AlarmManager.AlarmClockInfo(cal.timeInMillis, show), fire)
+                } else {
+                    am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cal.timeInMillis, fire)
+                }
+            } else {
+                am.setAlarmClock(AlarmManager.AlarmClockInfo(cal.timeInMillis, show), fire)
+            }
+        } catch (e: SecurityException) {
+            try {
+                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cal.timeInMillis, fire)
+            } catch (e2: Exception) {
+                e2.printStackTrace()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 }

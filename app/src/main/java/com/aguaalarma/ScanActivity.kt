@@ -10,7 +10,7 @@ import android.view.Gravity
 import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.TextView
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.*
@@ -21,7 +21,7 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.label.ImageLabeling
 import com.google.mlkit.vision.label.defaults.ImageLabelerOptions
 
-class ScanActivity : ComponentActivity() {
+class ScanActivity : AppCompatActivity() {
     private val labeler = ImageLabeling.getClient(
         ImageLabelerOptions.Builder().setConfidenceThreshold(0.5f).build())
     private val recipientes = setOf("glass", "cup", "drinkware", "bottle", "tableware", "mug", "water bottle")

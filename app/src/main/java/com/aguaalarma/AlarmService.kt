@@ -41,27 +41,55 @@ class AlarmService : Service() {
 
     private fun startSound() {
         if (player != null) return
-        val am = getSystemService(AUDIO_SERVICE) as AudioManager
-        am.setStreamVolume(AudioManager.STREAM_ALARM, am.getStreamMaxVolume(AudioManager.STREAM_ALARM), 0)
-        val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-        player = MediaPlayer().apply {
-            setAudioAttributes(AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_ALARM)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build())
-            setDataSource(this@AlarmService, uri)
-            isLooping = true
-            prepare(); start()
+        try {
+            val am = getSystemService(AUDIO_SERVICE) as? AudioManager
+            am?.let {
+                it.setStreamVolume(AudioManager.STREAM_ALARM, it.getStreamMaxVolume(AudioManager.STREAM_ALARM), 0)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-        @Suppress("DEPRECATION")
-        (getSystemService(VIBRATOR_SERVICE) as Vibrator)
-            .vibrate(VibrationEffect.createWaveform(longArrayOf(0, 800, 600), 0))
+
+        try {
+            val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+            player = MediaPlayer().apply {
+                setAudioAttributes(AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build())
+                setDataSource(this@AlarmService, uri)
+                isLooping = true
+                prepare()
+                start()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        try {
+            @Suppress("DEPRECATION")
+            val vib = getSystemService(VIBRATOR_SERVICE) as? Vibrator
+            vib?.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 800, 600), 0))
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun stopAlarm() {
-        player?.run { stop(); release() }; player = null
-        @Suppress("DEPRECATION")
-        (getSystemService(VIBRATOR_SERVICE) as Vibrator).cancel()
+        try {
+            player?.run { stop(); release() }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        player = null
+
+        try {
+            @Suppress("DEPRECATION")
+            (getSystemService(VIBRATOR_SERVICE) as? Vibrator)?.cancel()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }

@@ -44,11 +44,22 @@ class MainActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= 33) perms += Manifest.permission.POST_NOTIFICATIONS
         ActivityCompat.requestPermissions(this, perms.toTypedArray(), 1)
 
-        if (Build.VERSION.SDK_INT >= 34 &&
-            !getSystemService(NotificationManager::class.java).canUseFullScreenIntent()) {
-            startActivity(Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT)
-                .setData(android.net.Uri.parse("package:$packageName")))
+        try {
+            if (Build.VERSION.SDK_INT >= 34) {
+                val nm = getSystemService(NotificationManager::class.java)
+                if (nm != null && !nm.canUseFullScreenIntent()) {
+                    startActivity(Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT)
+                        .setData(android.net.Uri.parse("package:$packageName")))
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-        Scheduler.scheduleAll(this)
+
+        try {
+            Scheduler.scheduleAll(this)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 }
